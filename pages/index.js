@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import * as Icons from "react-icons/fa"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism"
+import { useRouter } from "next/router"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -159,6 +160,8 @@ const TreeNode = ({ node, onFileClick }) => {
 }
 
 const FolderTree = () => {
+  const router = useRouter()
+  const toast = useToast()
   const [folderStructure, setFolderStructure] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [fileContent, setFileContent] = useState("")
@@ -166,7 +169,79 @@ const FolderTree = () => {
   const [markdownContent, setMarkdownContent] = useState("")
   const [rootFolderName, setRootFolderName] = useState("")
 
-  const { toast } = useToast()
+  const readableExtensions = [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "json",
+    "md",
+    "txt",
+    "html",
+    "css",
+    "scss",
+    "java",
+    "py",
+    "rb",
+    "go",
+    "cpp",
+    "c",
+    "rs",
+  ]
+
+  const summarizeWithAI = () => {
+    const flattenedFiles = []
+
+    const extractReadableFiles = (node) => {
+      if (node.type === "file") {
+        const ext = node.name.split(".").pop().toLowerCase()
+        if (readableExtensions.includes(ext)) {
+          flattenedFiles.push(node)
+        }
+      } else if (node.children) {
+        node.children.forEach(extractReadableFiles)
+      }
+    }
+
+    if (folderStructure) {
+      extractReadableFiles(folderStructure)
+
+      if (flattenedFiles.length === 0) {
+        toast({
+          title: "No readable files found.",
+          description: "Only code or text files can be summarized.",
+          status: "warning",
+        })
+        return
+      }
+
+      const summaries = []
+      const readAndPush = (fileNode) =>
+        new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            summaries.push({
+              name: fileNode.name,
+              content: (e.target.result || "").slice(0, 2000),
+            })
+            resolve()
+          }
+          reader.readAsText(fileNode.file)
+        })
+
+      Promise.all(flattenedFiles.map(readAndPush)).then(() => {
+        router.push({
+          pathname: "/ai",
+          query: {
+            summarize: true,
+            content: summaries
+              .map((f) => `// ${f.name}\n${f.content}`)
+              .join("\n\n"),
+          },
+        })
+      })
+    }
+  }
 
   const handleFolderUpload = async (event) => {
     const files = event.target.files
@@ -293,6 +368,16 @@ const FolderTree = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">{rootFolderName}</h2>
                 <Button onClick={copyMarkdown}>Copy Markdown</Button>
+
+                <Button
+                  onClick={() =>
+                    summarizeWithAI(folderStructure, toast, router)
+                  }
+                  variant="outline"
+                  className="mt-2"
+                >
+                  Summarize with AI
+                </Button>
               </div>
               <ScrollArea className="h-[80vh]">
                 <TreeNode
