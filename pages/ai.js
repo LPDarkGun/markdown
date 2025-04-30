@@ -240,7 +240,7 @@ export default function Home() {
             Authorization: `Bearer ${API_KEY}`,
           },
           body: JSON.stringify({
-            model: "Qwen/Qwen2.5-Coder-32B-Instruct",
+            model: selectedModel,
             messages: [SYSTEM_PROMPT, { role: "user", content: code }],
             temperature: 0.7,
             max_completion_tokens: 200,
@@ -397,9 +397,30 @@ export default function Home() {
     )
   }
 
+  const [selectedModel, setSelectedModel] = useState(
+    "meta-llama/Llama-3.3-70B-Instruct"
+  )
+
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-6xl bg-gray-800 shadow-xl rounded-lg p-6 space-y-5 border border-gray-700">
+        <select
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          className="mb-4 p-2 rounded bg-gray-700 text-white border border-gray-600"
+        >
+          <option value="meta-llama/Llama-3.3-70B-Instruct">
+            LLaMA 3.3 70B
+          </option>
+          <option value="deepseek-ai/DeepSeek-R1">DeepSeek R1</option>
+          <option value="Qwen/Qwen2.5-Coder-32B-Instruct">
+            Qwen2.5 Coder 32B
+          </option>
+          <option value="databricks/dbrx-instruct">DBRX Instruct</option>
+          <option value="mistralai/Mistral-Large-Instruct-2411">
+            Mistral Large
+          </option>
+        </select>
         <div
           ref={containerRef}
           className="h-[600px] overflow-y-auto rounded p-4 space-y-5 bg-gray-800 scrollbar-thin scrollbar-thumb-gray-600"
@@ -439,6 +460,7 @@ export default function Home() {
           )}
           <div ref={messagesEndRef} />
         </div>
+
         <div className="flex gap-2">
           <input
             className="flex-1 border border-gray-600 rounded-lg px-3 py-2 bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
